@@ -5,7 +5,7 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
@@ -71,12 +71,30 @@ app.add_middleware(
 # 3. PYDANTIC INPUT SCHEMA (STRICT COUNTRY STRING VALIDATION)
 
 class LifeExpectancyInput(BaseModel):
-    country: AfricanCountry = Field(..., description="Must be a valid African country name string")
+    country: str | None = Field(default=None, description="Must be a valid African country name string")
+    country_code: int | None = Field(default=None, ge=0, le=1000, description="Optional country index for compatibility")
     adult_mortality: float = Field(..., ge=1.0, le=1000.0, description="Adult Mortality rate per 1000 population")
     infant_deaths: int = Field(..., ge=0, le=1000, description="Number of Infant Deaths per 1000 population")
     bmi: float = Field(..., ge=1.0, le=60.0, description="Average BMI of population")
     gdp: float = Field(..., ge=10.0, le=150000.0, description="GDP per capita in USD")
     schooling: float = Field(..., ge=0.0, le=25.0, description="Average years of schooling")
+
+    @model_validator(mode="after")
+    def validate_country_inputs(self):
+        if self.country is None and self.country_code is None:
+            raise ValueError("Either 'country' or 'country_code' must be provided.")
+
+        if self.country is not None:
+            self.country = self.country.strip()
+            if self.country not in AFRICAN_COUNTRIES_TUPLE:
+                raise ValueError(f"Unsupported country '{self.country}'.")
+        elif self.country_code is not None:
+            ordered_countries = sorted(list(AFRICAN_COUNTRIES_TUPLE))
+            if self.country_code >= len(ordered_countries):
+                raise ValueError("country_code is out of range.")
+            self.country = ordered_countries[self.country_code]
+
+        return self
 
 
 # 4. PATH RESOLUTION & ARTIFACT SETUP

@@ -134,7 +134,7 @@ class _LifeExpectancyPredictorPageState
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'country_code': selectedCountryCode,
+          'country': africanCountriesMap[selectedCountryCode],
           'adult_mortality': double.parse(adultMortalityController.text),
           'infant_deaths': int.parse(infantDeathsController.text),
           'bmi': double.parse(bmiController.text),

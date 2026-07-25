@@ -15,28 +15,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ------------------------------------------------------------------
-# CORS Configuration
-# Allowed origins restricted for security compliance (not using wildcard *)
-# ------------------------------------------------------------------
-origins = [
-    "http://localhost",
+ALLOWED_ORIGINS = [
+    "https://linear-regression-model-0uwb.onrender.com",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
     "http://localhost:8080",
-    "http://127.0.0.1",
-    "https://*.onrender.com"
+    "http://127.0.0.1:8080",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,  
+    allow_credentials=True,        
+    allow_methods=["*"],  
+    allow_headers=["*"],            
 )
 
-# ------------------------------------------------------------------
+
 # Pydantic Input Schema with Strict Range Constraints
-# ------------------------------------------------------------------
+
 class LifeExpectancyInput(BaseModel):
     adult_mortality: float = Field(..., ge=1.0, le=1000.0, description="Adult Mortality rate per 1000 population")
     infant_deaths: int = Field(..., ge=0, le=1000, description="Number of Infant Deaths per 1000 population")
@@ -44,9 +41,9 @@ class LifeExpectancyInput(BaseModel):
     gdp: float = Field(..., ge=10.0, le=150000.0, description="GDP per capita in USD")
     schooling: float = Field(..., ge=0.0, le=25.0, description="Average years of schooling")
 
-# ------------------------------------------------------------------
+
 # Load Model Artifacts
-# ------------------------------------------------------------------
+
 MODEL_PATH = "best_model.joblib"
 SCALER_PATH = "scaler.joblib"
 
@@ -64,9 +61,9 @@ def root():
         "documentation": "/docs"
     }
 
-# ------------------------------------------------------------------
+
 # Prediction Endpoint
-# ------------------------------------------------------------------
+
 @app.post("/predict", status_code=status.HTTP_200_OK)
 def predict_life_expectancy(data: LifeExpectancyInput):
     global model, scaler
@@ -96,9 +93,9 @@ def predict_life_expectancy(data: LifeExpectancyInput):
         "status": "success"
     }
 
-# ------------------------------------------------------------------
+
 # Background Task & Retraining Trigger Endpoint
-# ------------------------------------------------------------------
+
 def execute_model_retraining():
     """Background execution to reload data and update model artifacts."""
     global model, scaler

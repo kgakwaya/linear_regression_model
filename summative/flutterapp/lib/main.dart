@@ -32,7 +32,7 @@ class LifeExpectancyPredictorPage extends StatefulWidget {
 
 class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPage> {
   // API endpoint (update with your Render URL after deployment)
-  final String apiUrl = 'http://localhost:8000/predict';
+  final String apiUrl = 'https://linear-regression-model-0uwb.onrender.com/predict';
 
   // Text controllers
   final TextEditingController adultMortalityController = TextEditingController();

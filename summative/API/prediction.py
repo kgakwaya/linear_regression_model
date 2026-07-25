@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 # ==============================================================================
-# 1. LIST OF VALID AFRICAN COUNTRIES
+# 1. LIST OF VALID AFRICAN COUNTRIES & CASE-INSENSITIVE MAPPING
 # ==============================================================================
 AFRICAN_COUNTRIES_TUPLE = (
     'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon',
@@ -24,24 +24,16 @@ AFRICAN_COUNTRIES_TUPLE = (
     'Zambia', 'Zimbabwe'
 )
 
-# Define Type for Pydantic string validation
-AfricanCountry = Literal[
-    'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon',
-    'Cape Verde', 'Central African Republic', 'Chad', 'Comoros', 'Congo', "Cote d'Ivoire",
-    'Democratic Republic of the Congo', 'Djibouti', 'Egypt', 'Equatorial Guinea', 'Eritrea',
-    'Ethiopia', 'Gabon', 'Gambia', 'Ghana', 'Guinea', 'Guinea-Bissau', 'Kenya', 'Lesotho',
-    'Liberia', 'Libya', 'Madagascar', 'Malawi', 'Mali', 'Mauritania', 'Mauritius', 'Morocco',
-    'Mozambique', 'Namibia', 'Niger', 'Nigeria', 'Rwanda', 'Sao Tome and Principe',
-    'Senegal', 'Seychelles', 'Sierra Leone', 'Somalia', 'South Africa', 'South Sudan',
-    'Sudan', 'Swaziland', 'Togo', 'Tunisia', 'Uganda', 'United Republic of Tanzania',
-    'Zambia', 'Zimbabwe'
-]
+# Case-insensitive map: {'rwanda': 'Rwanda', 'kenya': 'Kenya', ...}
+COUNTRY_MAP = {country.lower(): country for country in AFRICAN_COUNTRIES_TUPLE}
 
 # Build fitted LabelEncoder matching training alphabetization
 le_country = LabelEncoder()
 le_country.fit(sorted(list(AFRICAN_COUNTRIES_TUPLE)))
 
+# ==============================================================================
 # 2. FASTAPI APP INITIALIZATION
+# ==============================================================================
 
 app = FastAPI(
     title="African Life Expectancy Predictor API",
@@ -68,7 +60,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. PYDANTIC INPUT SCHEMA (STRICT COUNTRY STRING VALIDATION)
+# ==============================================================================
+# 3. PYDANTIC INPUT SCHEMA (CASE-INSENSITIVE & ROBUST VALIDATION)
+# ==============================================================================
 
 class LifeExpectancyInput(BaseModel):
     country: str | None = Field(default=None, description="Must be a valid African country name string")
@@ -85,9 +79,11 @@ class LifeExpectancyInput(BaseModel):
             raise ValueError("Either 'country' or 'country_code' must be provided.")
 
         if self.country is not None:
-            self.country = self.country.strip()
-            if self.country not in AFRICAN_COUNTRIES_TUPLE:
-                raise ValueError(f"Unsupported country '{self.country}'.")
+            cleaned_input = self.country.strip().lower()
+            if cleaned_input not in COUNTRY_MAP:
+                raise ValueError(f"Unsupported country '{self.country}'. Must be a valid African nation.")
+            # Map input to canonical Title Case (e.g. 'rwanda' -> 'Rwanda')
+            self.country = COUNTRY_MAP[cleaned_input]
         elif self.country_code is not None:
             ordered_countries = sorted(list(AFRICAN_COUNTRIES_TUPLE))
             if self.country_code >= len(ordered_countries):
@@ -96,8 +92,9 @@ class LifeExpectancyInput(BaseModel):
 
         return self
 
-
+# ==============================================================================
 # 4. PATH RESOLUTION & ARTIFACT SETUP
+# ==============================================================================
 
 API_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = API_DIR.parents[1] if len(API_DIR.parents) >= 2 else API_DIR.parent
@@ -116,8 +113,9 @@ def load_artifacts():
 
 model, scaler = load_artifacts()
 
-
+# ==============================================================================
 # 5. ENDPOINTS
+# ==============================================================================
 
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():
@@ -134,7 +132,7 @@ def predict_life_expectancy(data: LifeExpectancyInput):
                 detail="Model or scaler artifacts missing on server."
             )
 
-    # Encode string country to integer code
+    # Encode standardized country string to integer code
     try:
         encoded_country = int(le_country.transform([data.country])[0])
     except Exception:
@@ -162,8 +160,9 @@ def predict_life_expectancy(data: LifeExpectancyInput):
         "status": "success",
     }
 
-
+# ==============================================================================
 # 6. RETRAINING TASK
+# ==============================================================================
 
 def execute_model_retraining():
     global model, scaler

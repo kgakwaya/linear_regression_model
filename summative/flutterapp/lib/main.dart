@@ -30,9 +30,13 @@ class LifeExpectancyPredictorPage extends StatefulWidget {
       _LifeExpectancyPredictorPageState();
 }
 
-class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPage> {
-  // API endpoint (update with your Render URL after deployment)
-  final String apiUrl = 'https://linear-regression-model-0uwb.onrender.com/predict';
+class _LifeExpectancyPredictorPageState
+    extends State<LifeExpectancyPredictorPage> {
+  final String apiUrl =
+      'https://linear-regression-model-0uwb.onrender.com/predict';
+
+  // Selected Country Code (Default 0: Algeria)
+  int selectedCountryCode = 0;
 
   // Text controllers
   final TextEditingController adultMortalityController = TextEditingController();
@@ -41,7 +45,22 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
   final TextEditingController gdpController = TextEditingController();
   final TextEditingController schoolingController = TextEditingController();
 
-  // State variables
+  // African Countries Map
+  final Map<int, String> africanCountriesMap = {
+    0: 'Algeria', 1: 'Angola', 2: 'Benin', 3: 'Botswana', 4: 'Burkina Faso',
+    5: 'Burundi', 6: 'Cameroon', 7: 'Cape Verde', 8: 'Central African Republic',
+    9: 'Chad', 10: 'Comoros', 11: 'Congo', 12: "Cote d'Ivoire",
+    13: 'Democratic Republic of the Congo', 14: 'Djibouti', 15: 'Egypt',
+    16: 'Equatorial Guinea', 17: 'Eritrea', 18: 'Ethiopia', 19: 'Gabon',
+    20: 'Gambia', 21: 'Ghana', 22: 'Guinea', 23: 'Guinea-Bissau', 24: 'Kenya',
+    25: 'Lesotho', 26: 'Liberia', 27: 'Libya', 28: 'Madagascar', 29: 'Malawi',
+    30: 'Mali', 31: 'Mauritania', 32: 'Mauritius', 33: 'Morocco', 34: 'Mozambique',
+    35: 'Namibia', 36: 'Niger', 37: 'Nigeria', 38: 'Rwanda', 39: 'Sao Tome and Principe',
+    40: 'Senegal', 41: 'Seychelles', 42: 'Sierra Leone', 43: 'Somalia', 44: 'South Africa',
+    45: 'South Sudan', 46: 'Sudan', 47: 'Swaziland', 48: 'Togo', 49: 'Tunisia',
+    50: 'Uganda', 51: 'United Republic of Tanzania', 52: 'Zambia', 53: 'Zimbabwe'
+  };
+
   bool isLoading = false;
   String resultMessage = '';
   Color resultColor = Colors.grey;
@@ -56,7 +75,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
     super.dispose();
   }
 
-  // Validate input fields
   bool validateInputs() {
     if (adultMortalityController.text.isEmpty ||
         infantDeathsController.text.isEmpty ||
@@ -77,7 +95,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
       double gdp = double.parse(gdpController.text);
       double schooling = double.parse(schoolingController.text);
 
-      // Check ranges
       if (adultMortality < 1.0 || adultMortality > 1000.0) {
         throw Exception('Adult Mortality must be between 1.0 and 1000.0');
       }
@@ -103,11 +120,8 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
     }
   }
 
-  // Make prediction API call
   Future<void> makePrediction() async {
-    if (!validateInputs()) {
-      return;
-    }
+    if (!validateInputs()) return;
 
     setState(() {
       isLoading = true;
@@ -120,6 +134,7 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          'country_code': selectedCountryCode,
           'adult_mortality': double.parse(adultMortalityController.text),
           'infant_deaths': int.parse(infantDeathsController.text),
           'bmi': double.parse(bmiController.text),
@@ -138,7 +153,8 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
         });
       } else {
         setState(() {
-          resultMessage = 'Error: Failed to get prediction (${response.statusCode})';
+          resultMessage =
+              'Error: Failed to get prediction (${response.statusCode})';
           resultColor = Colors.red;
           isLoading = false;
         });
@@ -152,7 +168,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
     }
   }
 
-  // Clear form
   void clearForm() {
     adultMortalityController.clear();
     infantDeathsController.clear();
@@ -160,6 +175,7 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
     gdpController.clear();
     schoolingController.clear();
     setState(() {
+      selectedCountryCode = 0;
       resultMessage = '';
       resultColor = Colors.grey;
     });
@@ -178,7 +194,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // Title
               Text(
                 'Predict Life Expectancy',
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -191,7 +206,29 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 24),
 
-              // Adult Mortality Input
+              // Country Dropdown
+              DropdownButtonFormField<int>(
+                value: selectedCountryCode,
+                decoration: InputDecoration(
+                  labelText: 'African Country',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                items: africanCountriesMap.entries.map((entry) {
+                  return DropdownMenuItem<int>(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => selectedCountryCode = val);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
               _buildInputField(
                 label: 'Adult Mortality (per 1000)',
                 hint: '1.0 - 1000.0',
@@ -200,7 +237,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 16),
 
-              // Infant Deaths Input
               _buildInputField(
                 label: 'Infant Deaths (per 1000)',
                 hint: '0 - 1000',
@@ -209,7 +245,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 16),
 
-              // BMI Input
               _buildInputField(
                 label: 'BMI (Body Mass Index)',
                 hint: '1.0 - 60.0',
@@ -218,7 +253,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 16),
 
-              // GDP Input
               _buildInputField(
                 label: 'GDP per Capita (USD)',
                 hint: '10.0 - 150000.0',
@@ -227,7 +261,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 16),
 
-              // Schooling Input
               _buildInputField(
                 label: 'Schooling (Years)',
                 hint: '0.0 - 25.0',
@@ -236,7 +269,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 24),
 
-              // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -261,7 +293,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
               ),
               const SizedBox(height: 24),
 
-              // Result Display
               if (resultMessage.isNotEmpty)
                 Container(
                   width: double.infinity,
@@ -288,7 +319,6 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
     );
   }
 
-  // Helper method to build input field
   Widget _buildInputField({
     required String label,
     required String hint,
@@ -304,7 +334,8 @@ class _LifeExpectancyPredictorPageState extends State<LifeExpectancyPredictorPag
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
     );
   }

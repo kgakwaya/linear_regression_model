@@ -91,6 +91,10 @@ linear_regression_model/
 - uv (Python package manager)
 - Flutter SDK (for mobile app)
 
+### Public API URL
+- Prediction endpoint: https://linear-regression-model-0uwb.onrender.com/predict
+- Swagger UI: https://linear-regression-model-0uwb.onrender.com/docs
+
 ### Step 1: Install Dependencies
 ```bash
 cd summative

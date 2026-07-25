@@ -41,9 +41,8 @@ AfricanCountry = Literal[
 le_country = LabelEncoder()
 le_country.fit(sorted(list(AFRICAN_COUNTRIES_TUPLE)))
 
-# ==============================================================================
 # 2. FASTAPI APP INITIALIZATION
-# ==============================================================================
+
 app = FastAPI(
     title="African Life Expectancy Predictor API",
     description="API for predicting life expectancy across African nations.",
@@ -69,9 +68,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==============================================================================
 # 3. PYDANTIC INPUT SCHEMA (STRICT COUNTRY STRING VALIDATION)
-# ==============================================================================
+
 class LifeExpectancyInput(BaseModel):
     country: AfricanCountry = Field(..., description="Must be a valid African country name string")
     adult_mortality: float = Field(..., ge=1.0, le=1000.0, description="Adult Mortality rate per 1000 population")
@@ -80,9 +78,9 @@ class LifeExpectancyInput(BaseModel):
     gdp: float = Field(..., ge=10.0, le=150000.0, description="GDP per capita in USD")
     schooling: float = Field(..., ge=0.0, le=25.0, description="Average years of schooling")
 
-# ==============================================================================
+
 # 4. PATH RESOLUTION & ARTIFACT SETUP
-# ==============================================================================
+
 API_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = API_DIR.parents[1] if len(API_DIR.parents) >= 2 else API_DIR.parent
 
@@ -100,9 +98,9 @@ def load_artifacts():
 
 model, scaler = load_artifacts()
 
-# ==============================================================================
+
 # 5. ENDPOINTS
-# ==============================================================================
+
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():
     return {"message": "African Life Expectancy API Active", "docs": "/docs"}
@@ -146,9 +144,9 @@ def predict_life_expectancy(data: LifeExpectancyInput):
         "status": "success",
     }
 
-# ==============================================================================
+
 # 6. RETRAINING TASK
-# ==============================================================================
+
 def execute_model_retraining():
     global model, scaler
     try:

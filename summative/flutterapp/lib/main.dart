@@ -130,24 +130,30 @@ class _LifeExpectancyPredictorPageState
     });
 
     try {
+      final selectedCountryName = africanCountriesMap[selectedCountryCode] ?? 'Unknown';
+      final requestBody = json.encode({
+        'country': selectedCountryName,
+        'adult_mortality': double.parse(adultMortalityController.text),
+        'infant_deaths': int.parse(infantDeathsController.text),
+        'bmi': double.parse(bmiController.text),
+        'gdp': double.parse(gdpController.text),
+        'schooling': double.parse(schoolingController.text),
+      });
+
+      debugPrint('Sending prediction request for country: $selectedCountryName');
+      debugPrint('Request body: $requestBody');
+
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'country': africanCountriesMap[selectedCountryCode],
-          'adult_mortality': double.parse(adultMortalityController.text),
-          'infant_deaths': int.parse(infantDeathsController.text),
-          'bmi': double.parse(bmiController.text),
-          'gdp': double.parse(gdpController.text),
-          'schooling': double.parse(schoolingController.text),
-        }),
+        body: requestBody,
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
           resultMessage =
-              'Predicted Life Expectancy: ${data['predicted_life_expectancy_years']} years';
+              'Country: $selectedCountryName\nPredicted Life Expectancy: ${data['predicted_life_expectancy_years']} years';
           resultColor = Colors.green;
           isLoading = false;
         });
@@ -215,6 +221,7 @@ class _LifeExpectancyPredictorPageState
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+                hint: const Text('Select a country'),
                 items: africanCountriesMap.entries.map((entry) {
                   return DropdownMenuItem<int>(
                     value: entry.key,

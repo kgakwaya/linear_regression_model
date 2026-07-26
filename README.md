@@ -188,3 +188,5 @@ For deployment, use:
 ## License
 
 MIT
+Link to demo video: https://youtu.be/6nSdSx18xPY
+
